@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#10243a">
+<title>E.S.P | 화장실 실시간 상태</title>
+<style>
+:root{
+  --navy:#10243a;--navy2:#183651;--ink:#172b3f;--muted:#6c7e90;
+  --bg:#f3f7fb;--line:#e2eaf2;--white:#fff;--green:#16845b;
+  --green-bg:#e5f7ee;--red:#c44444;--red-bg:#fff0ef;--amber:#9a6500;--amber-bg:#fff5d9;
+  --blue:#3568a8;--shadow:0 8px 26px rgba(16,36,58,.06)
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Malgun Gothic","맑은 고딕",sans-serif}
+header{background:linear-gradient(125deg,var(--navy),var(--navy2));color:#fff;padding:30px 20px 28px}
+.wrap{width:min(100% - 32px,1000px);margin:0 auto}
+.brand{display:flex;align-items:center;gap:13px}
+.logo{width:48px;height:48px;display:grid;place-items:center;border:1px solid #ffffff40;background:#ffffff12;border-radius:15px;font-size:25px;font-weight:800;letter-spacing:-1px}
+h1{font-size:clamp(24px,4vw,34px);letter-spacing:-.8px;margin:0}
+.subtitle{color:#d2dfeb;margin:8px 0 0;font-size:15px;line-height:1.6}
+main{padding:24px 0 42px}
+.topline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:18px}
+.eyebrow{font-size:12px;letter-spacing:1.3px;font-weight:800;color:var(--muted)}
+.connection{display:inline-flex;align-items:center;gap:8px;padding:9px 12px;background:#fff;border:1px solid var(--line);border-radius:999px;font-size:13px;font-weight:700}
+.dot{width:9px;height:9px;border-radius:50%;background:#b7c2ce;flex:none}
+.connection.online .dot{background:var(--green);box-shadow:0 0 0 4px #16845b18}
+.connection.waiting .dot{background:#d59b22}
+.connection.offline .dot{background:var(--red)}
+.summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-bottom:28px}
+.summary-card{background:var(--white);border:1px solid var(--line);border-radius:18px;padding:18px 20px;box-shadow:var(--shadow)}
+.summary-label{font-size:13px;color:var(--muted);font-weight:650}
+.summary-value{font-size:34px;font-weight:800;line-height:1.25;letter-spacing:-1px;margin-top:8px}
+.summary-value small{font-size:14px;letter-spacing:0;font-weight:650;color:var(--muted);margin-left:4px}
+.summary-card.available .summary-value{color:var(--green)}
+.summary-card.occupied .summary-value{color:var(--red)}
+.section-heading{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:28px 0 13px}
+.section-heading h2{font-size:20px;letter-spacing:-.4px;margin:0}
+.section-heading p{font-size:13px;color:var(--muted);margin:4px 0 0}
+.section-count{font-size:12px;font-weight:750;color:var(--muted);background:#e9eff5;border-radius:999px;padding:6px 10px}
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.fixture{position:relative;display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;min-height:116px;box-shadow:var(--shadow)}
+.fixture-icon{width:54px;height:54px;border-radius:16px;background:#edf3f8;color:#38546e;display:grid;place-items:center;flex:none}
+.fixture-icon svg{width:29px;height:29px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.fixture-info{min-width:0;flex:1}
+.fixture-name{font-size:16px;font-weight:800;margin:0 0 9px}
+.status{display:inline-flex;align-items:center;gap:7px;border-radius:999px;padding:7px 11px;font-size:13px;font-weight:800;white-space:nowrap}
+.status::before{content:"";width:7px;height:7px;border-radius:50%;background:currentColor}
+.status.free{background:var(--green-bg);color:var(--green)}
+.status.busy{background:var(--red-bg);color:var(--red)}
+.status.unknown{background:var(--amber-bg);color:var(--amber)}
+.foot{margin-top:24px;padding:17px 18px;border:1px solid var(--line);background:#fff;border-radius:16px;display:flex;gap:12px;align-items:flex-start}
+.foot-icon{font-size:20px;line-height:1.2}
+.foot strong{display:block;font-size:14px;margin-bottom:4px}
+.foot p{margin:0;color:var(--muted);font-size:13px;line-height:1.65}
+.update-row{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:15px;color:var(--muted);font-size:12px}
+#lastUpdate{font-variant-numeric:tabular-nums}
+footer{text-align:center;color:#8a99a8;font-size:12px;padding:0 16px 24px}
+@media(max-width:620px){
+ .wrap{width:min(100% - 22px,1000px)}
+ header{padding:23px 0}
+ .logo{width:42px;height:42px;border-radius:13px}
+ .summary{gap:8px}
+ .summary-card{padding:14px 12px;border-radius:14px}
+ .summary-label{font-size:12px}
+ .summary-value{font-size:28px}
+ .summary-value small{display:block;margin:3px 0 0;font-size:12px}
+ .grid{grid-template-columns:1fr;gap:10px}
+ .fixture{min-height:100px;padding:16px;border-radius:16px}
+ .fixture-icon{width:48px;height:48px}
+ .section-heading{margin-top:24px}
+}
+@media(prefers-reduced-motion:no-preference){.fixture,.summary-card{transition:box-shadow .18s ease,transform .18s ease}.fixture:hover{box-shadow:0 10px 30px rgba(16,36,58,.09);transform:translateY(-1px)}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="brand">
+      <div class="logo" aria-hidden="true">E.S.P</div>
+      <div>
+        <h1>화장실 실시간 상태</h1>
+        <p class="subtitle">센서에서 전달된 신호로 사용 가능 여부를 확인합니다.</p>
+      </div>
+    </div>
+  </div>
+</header>
+<main class="wrap">
+  <div class="topline">
+    <div class="eyebrow">RESTROOM STATUS BOARD</div>
+    <div class="connection waiting" id="connection" role="status" aria-live="polite">
+      <span class="dot" aria-hidden="true"></span><span id="connectionText">ESP32 신호 대기 중</span>
+    </div>
+  </div>
+
+  <section class="summary" aria-label="전체 현황">
+    <div class="summary-card">
+      <div class="summary-label">전체 시설</div>
+      <div class="summary-value">4<small>개</small></div>
+    </div>
+    <div class="summary-card available">
+      <div class="summary-label">사용 가능</div>
+      <div class="summary-value"><span id="freeCount">—</span><small>개</small></div>
+    </div>
+    <div class="summary-card occupied">
+      <div class="summary-label">사용 중</div>
+      <div class="summary-value"><span id="busyCount">—</span><small>개</small></div>
+    </div>
+  </section>
+
+  <section aria-labelledby="urinalTitle">
+    <div class="section-heading">
+      <div><h2 id="urinalTitle">소변기</h2><p>각 시설의 현재 상태</p></div>
+      <span class="section-count">2개 시설</span>
+    </div>
+    <div class="grid" id="urinals"></div>
+  </section>
+
+  <section aria-labelledby="toiletTitle">
+    <div class="section-heading">
+      <div><h2 id="toiletTitle">대변기</h2><p>각 시설의 현재 상태</p></div>
+      <span class="section-count">2개 시설</span>
+    </div>
+    <div class="grid" id="toilets"></div>
+  </section>
+
+  <aside class="foot">
+    <div class="foot-icon" aria-hidden="true">ⓘ</div>
+    <div>
+      <strong>자동 상태 표시</strong>
+      <p>이 화면에서는 상태를 직접 변경할 수 없습니다. ESP32에서 받은 MQTT 신호만 표시합니다. 신호가 도착하기 전에는 상태를 추측하지 않고 ‘신호 대기’로 표시합니다.</p>
+      <div class="update-row"><span id="sourceText">데이터 출처: ESP32 / MQTT</span><span>최근 수신: <time id="lastUpdate">아직 없음</time></span></div>
+    </div>
+  </aside>
+</main>
+<footer>E.S.P · ESP32 기반 화장실 상태 확인 시스템 · 시연용</footer>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>
+"use strict";
+const mqttUrl = "wss://broker.hivemq.com:8884/mqtt";
+const mqttTopic = "esp_restroom_demo_6f2a91/status";
+const items = [
+  {id:"u1",type:"u",name:"소변기 1",busy:null},
+  {id:"u2",type:"u",name:"소변기 2",busy:null},
+  {id:"t1",type:"t",name:"대변기 1",busy:null},
+  {id:"t2",type:"t",name:"대변기 2",busy:null}
+];
+const urinalSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 4h10l-1 5 2 8a2 2 0 0 1-2 3H8a2 2 0 0 1-2-3l2-8-1-5Z"/><path d="M9 4V2h6v2M9 13h6"/></svg>';
+const toiletSvg = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v6H6z"/><path d="M5 9h14l-1 5a5 5 0 0 1-5 4h-2a5 5 0 0 1-5-4L5 9Z"/><path d="M9 18v3m6-3v3"/></svg>';
+
+function fixtureMarkup(item){
+  const state = item.busy === null ? "unknown" : item.busy ? "busy" : "free";
+  const label = item.busy === null ? "신호 대기" : item.busy ? "사용 중" : "사용 가능";
+  const icon = item.type === "u" ? urinalSvg : toiletSvg;
+  return `<article class="fixture"><div class="fixture-icon">${icon}</div><div class="fixture-info"><h3 class="fixture-name">${item.name}</h3><span class="status ${state}" aria-label="${label}">${label}</span></div></article>`;
+}
+function render(){
+  document.getElementById("urinals").innerHTML = items.filter(x=>x.type==="u").map(fixtureMarkup).join("");
+  document.getElementById("toilets").innerHTML = items.filter(x=>x.type==="t").map(fixtureMarkup).join("");
+  const known = items.filter(x=>typeof x.busy === "boolean");
+  const busy = known.filter(x=>x.busy).length;
+  const free = known.filter(x=>!x.busy).length;
+  document.getElementById("busyCount").textContent = known.length ? busy : "—";
+  document.getElementById("freeCount").textContent = known.length ? free : "—";
+}
+function setConnection(kind,text){
+  const el=document.getElementById("connection");
+  el.className="connection "+kind;
+  document.getElementById("connectionText").textContent=text;
+}
+function applyMessage(payload){
+  try{
+    const state=JSON.parse(payload);
+    let changed=false;
+    for(const item of items){
+      if(typeof state[item.id] === "boolean"){
+        item.busy=state[item.id];
+        changed=true;
+      }
+    }
+    if(changed){
+      document.getElementById("lastUpdate").textContent=new Date().toLocaleTimeString("ko-KR",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+      document.getElementById("sourceText").textContent="데이터 출처: ESP32 / MQTT";
+      render();
+    }
+  }catch(e){console.warn("MQTT 상태 메시지를 해석하지 못했습니다.",e);}
+}
+function connectMqtt(){
+  if(!window.mqtt){
+    setConnection("offline","통신 모듈을 불러오지 못함");
+    return;
+  }
+  setConnection("waiting","ESP32 신호 대기 중");
+  const client=mqtt.connect(mqttUrl,{
+    connectTimeout:10000,
+    reconnectPeriod:3000,
+    clientId:"esp_web_"+Math.random().toString(16).slice(2,10)
+  });
+  client.on("connect",()=>{
+    setConnection("online","서버 연결됨 · 센서 신호 대기");
+    client.subscribe(mqttTopic,err=>{
+      if(err) setConnection("offline","상태 구독 실패");
+    });
+  });
+  client.on("message",(topic,message)=>{
+    if(topic===mqttTopic){
+      applyMessage(message.toString());
+      if(items.some(x=>typeof x.busy==="boolean")) setConnection("online","실시간 연결됨");
+    }
+  });
+  client.on("reconnect",()=>setConnection("waiting","서버 재연결 중"));
+  client.on("offline",()=>setConnection("offline","연결 끊김"));
+  client.on("close",()=>setConnection("offline","연결 끊김 · 재연결 시도"));
+  client.on("error",()=>setConnection("offline","연결 오류 · 인터넷 확인"));
+}
+render();
+connectMqtt();
+</script>
+</body>
+</html>
